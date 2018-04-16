@@ -62,4 +62,11 @@ public class EdgeSwitches implements Edge{
     }
 
 
+    public String getNode1() {
+        return switchIp1;
+    }
+
+    public String getNode2() {
+        return switchIp2;
+    }
 }

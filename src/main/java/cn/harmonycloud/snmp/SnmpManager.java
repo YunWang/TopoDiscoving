@@ -64,10 +64,10 @@ public class SnmpManager {
      * @return MAC地址表,HashMap类型,{mac:port}
      * @throws IOException
      */
-    public HashMap<String,String> getMacAndPort(PDU pdu, String address, String port) throws IOException {
+    public HashMap<String,String> getMacAndPort(PDU pdu, String address, String port,String community) throws IOException {
         Address targetAddress = GenericAddress.parse(address); // 生成目标地址对象
         Target target = null;
-        target = setTarget();
+        target = setTarget(community);
         // 目标对象相关设置
         target.setAddress(targetAddress);
         target.setRetries(5);
@@ -102,7 +102,7 @@ public class SnmpManager {
             pdu.add(new VariableBinding(oMac));
             // 设置报文类型
             pdu.setType(PDU.GETNEXT);
-            getMacAndPort(pdu, address, port);
+            getMacAndPort(pdu, address, port,community);
         }
         return macTable;
     }
@@ -114,10 +114,10 @@ public class SnmpManager {
      * @return HashMap类型的ARP表,{mac:ip}
      * @throws IOException
      */
-    public HashMap<String,String> getMacAndIp(PDU pdu, String address) throws IOException {
+    public HashMap<String,String> getMacAndIp(PDU pdu, String address,String community) throws IOException {
         Address targetAddress = GenericAddress.parse(address); // 生成目标地址对象
         Target target = null;
-        target = setTarget();
+        target = setTarget(community);
         // 目标对象相关设置
         target.setAddress(targetAddress);
         target.setRetries(5);
@@ -141,7 +141,7 @@ public class SnmpManager {
             pdu.add(new VariableBinding(oIp));
             // 设置报文类型
             pdu.setType(PDU.GETNEXT);
-            getMacAndIp(pdu, address);
+            getMacAndIp(pdu, address,community);
         }
         return arpTable;
     }
@@ -149,7 +149,7 @@ public class SnmpManager {
     /**
      * 根据snmp版本设置target
      */
-    private Target setTarget(){
+    private Target setTarget(String community){
         Target target = null;
         if (version == SnmpConstants.version3) {
             // 添加用户
@@ -164,10 +164,10 @@ public class SnmpManager {
             target = new CommunityTarget();
             if (version == SnmpConstants.version1) {
                 target.setVersion(SnmpConstants.version1);
-                ((CommunityTarget) target).setCommunity(new OctetString("password"));
+                ((CommunityTarget) target).setCommunity(new OctetString(community));
             } else {
                 target.setVersion(SnmpConstants.version2c);
-                ((CommunityTarget) target).setCommunity(new OctetString("password"));
+                ((CommunityTarget) target).setCommunity(new OctetString(community));
             }
         }
         return target;
@@ -196,24 +196,24 @@ public class SnmpManager {
 //        }
 
         //test getMacAndIp
-        PDU pdu = new PDU();
-        OID oid1 = new OID(SnmpConstant.IP_OID1);
-        OID oid2 = new OID(SnmpConstant.IP_OID2);
-        pdu.add(new VariableBinding(oid1));
-        pdu.add(new VariableBinding(oid2));
-        pdu.setType(PDU.GETNEXT);
-
-        String udpURL = "udp:10.100.100.251/161";
-        SnmpManager manager = new SnmpManager(SnmpConstants.version2c);
-
-        HashMap<String,String> arpTable = null;
-        arpTable = manager.getMacAndIp(pdu,udpURL);
-        if (arpTable == null){
-            System.out.println("arpTable is empty!");
-        }
-        System.out.println("ARPTable:" + arpTable.size());
-        for (String mac:arpTable.keySet()){
-            System.out.println("Mac[" + mac + "] <==> ip[" + arpTable.get(mac) + "]");
-        }
+//        PDU pdu = new PDU();
+//        OID oid1 = new OID(SnmpConstant.IP_OID1);
+//        OID oid2 = new OID(SnmpConstant.IP_OID2);
+//        pdu.add(new VariableBinding(oid1));
+//        pdu.add(new VariableBinding(oid2));
+//        pdu.setType(PDU.GETNEXT);
+//
+//        String udpURL = "udp:10.100.100.251/161";
+//        SnmpManager manager = new SnmpManager(SnmpConstants.version2c);
+//
+//        HashMap<String,String> arpTable = null;
+//        arpTable = manager.getMacAndIp(pdu,udpURL);
+//        if (arpTable == null){
+//            System.out.println("arpTable is empty!");
+//        }
+//        System.out.println("ARPTable:" + arpTable.size());
+//        for (String mac:arpTable.keySet()){
+//            System.out.println("Mac[" + mac + "] <==> ip[" + arpTable.get(mac) + "]");
+//        }
     }
 }

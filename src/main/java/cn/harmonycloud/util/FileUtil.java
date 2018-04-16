@@ -5,6 +5,7 @@ import net.sf.json.JSONObject;
 
 import java.io.*;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 /**
@@ -79,6 +80,24 @@ public class FileUtil {
             bw.newLine();
         }
         bw.close();
+    }
+
+    public static HashMap<String,String> FileReadByLine(String filepath) throws IOException {
+        FileInputStream inputStream = new FileInputStream(filepath);
+        BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(inputStream));
+
+        HashMap<String, String> result = new HashMap<String, String>();
+        String str = "";
+        while((str = bufferedReader.readLine()) != null)
+        {
+            String[] _switch = str.split(":");
+            result.put(_switch[0],_switch[1]);
+        }
+
+        //close
+        inputStream.close();
+        bufferedReader.close();
+        return result;
     }
 
 //    public static void main(String[] args) throws IOException {

@@ -40,4 +40,12 @@ public class EdgeComputerAndSwitch implements Edge{
     public void setSwitchPort(String switchPort) {
         this.switchPort = switchPort;
     }
+
+    public String getNode1() {
+        return switchIp;
+    }
+
+    public String getNode2() {
+        return computerIp;
+    }
 }

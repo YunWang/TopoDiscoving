@@ -20,12 +20,12 @@ public class SnmpUtil {
 
     /**
      * 获取所有switch的mac地址表
-     * @param switchIps 所有switch的ip列表
+     * @param switchInfo 所有switch的ip与community的对应关系
      * @return HashMap类型,存储mac地址表;{switchIp:{mac:port}}
      */
-    public static HashMap<String,HashMap<String,String>> getMacTable(List<String> switchIps){
-        if (switchIps == null){
-            LOGGER.error("SwitchIps is null when get macTable!");
+    public static HashMap<String,HashMap<String,String>> getMacTable(HashMap<String,String> switchInfo){
+        if (switchInfo == null){
+            LOGGER.debug("SwitchIps is null when get macTable!");
             return null;
         }
         //存储mac表,{switchIp:{mac:port}}
@@ -40,17 +40,17 @@ public class SnmpUtil {
         pdu.add(new VariableBinding(oMac));
         pdu.setType(PDU.GETNEXT);	// 设置报文类型
         try {
-            for (String switchIp : switchIps){
+            for (String switchIp : switchInfo.keySet()){
                 String udpURL = SnmpConstant.PROTOCOL + ":" + switchIp + "/" + SnmpConstant.UDP_PORT;
-                portAddr = manager.getMacAndPort(pdu, udpURL, SnmpConstant.INTERNET_PORT);
+                portAddr = manager.getMacAndPort(pdu, udpURL, SnmpConstant.INTERNET_PORT,switchInfo.get(switchIp));
                 if (portAddr == null){
-                    LOGGER.error("Switch[%s] mac table is empty!",switchIp);
+                    LOGGER.debug("Switch[%s] mac table is empty!",switchIp);
                     return null;
                 }
                 macTable.put(switchIp,portAddr);
             }
         } catch (Exception e) {
-            LOGGER.error(e.getMessage());
+            LOGGER.debug(e.getMessage());
         }
 
         return macTable;
@@ -58,12 +58,12 @@ public class SnmpUtil {
 
     /**
      * 获取所有switch的arp表
-     * @param switchIps 所有switch的ip列表
+     * @param switchInfo 所有switch的ip与community对应关系
      * @return HashMap类型,存储所有switch的arp的总和;{mac:ip}
      */
-    public static HashMap<String,String> getArpTable(List<String> switchIps){
-        if (switchIps == null){
-            LOGGER.error("SwitchIps is null when get arp table!");
+    public static HashMap<String,String> getArpTable(HashMap<String,String> switchInfo){
+        if (switchInfo == null){
+            LOGGER.debug("SwitchIps is null when get arp table!");
             return null;
         }
         HashMap<String,String> arpTable = new HashMap<String, String>();
@@ -76,17 +76,17 @@ public class SnmpUtil {
         pdu.add(new VariableBinding(oid2));
         pdu.setType(PDU.GETNEXT);	// 设置报文类型
         try {
-            for (String ip : switchIps){
+            for (String ip : switchInfo.keySet()){
                 String udpUrl = SnmpConstant.PROTOCOL + ":" + ip + "/" + SnmpConstant.UDP_PORT;
-                HashMap<String,String> temp = snmpManager.getMacAndIp(pdu,udpUrl);
+                HashMap<String,String> temp = snmpManager.getMacAndIp(pdu,udpUrl,switchInfo.get(ip));
                 if (temp == null){
-                    LOGGER.error("Cannot get ARP table!");
+                    LOGGER.debug("Cannot get ARP table!");
                     return null;
                 }
                 arpTable.putAll(temp);
             }
         } catch (Exception e) {
-            LOGGER.error(e.getMessage());
+            LOGGER.debug(e.getMessage());
         }
 
         return arpTable;

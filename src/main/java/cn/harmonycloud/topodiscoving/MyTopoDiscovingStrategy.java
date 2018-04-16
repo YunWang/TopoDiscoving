@@ -2,11 +2,14 @@ package cn.harmonycloud.topodiscoving;
 
 import cn.harmonycloud.bean.*;
 import cn.harmonycloud.constant.TopoConstant;
+import cn.harmonycloud.util.FileUtil;
 import cn.harmonycloud.util.SnmpUtil;
 import cn.harmonycloud.util.TopoUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -29,17 +32,26 @@ public class MyTopoDiscovingStrategy implements TopoDiscovingStrategy{
     /**
      * 存储给定的switch的ip,认为局域网上就只有这些switch
      */
-    private List<String> switchesIp = new ArrayList<String>();
+//    private List<String> switchesIp = new ArrayList<String>();
+    /**
+     * 存储switch的Ip与community的对应关系
+     */
+    private HashMap<String,String> switchInfo = new HashMap<String, String>();
 
     private SwitchTopo topo = new SwitchTopo();
 
-    public MyTopoDiscovingStrategy(List<String> switchesIp){
-        this.switchesIp = switchesIp;
+    public MyTopoDiscovingStrategy(){}
+    public MyTopoDiscovingStrategy(HashMap<String,String> switchInfo){
+        this.switchInfo = switchInfo;
     }
 
-    public boolean enterSwitchesIp(){
+    public boolean enterSwitchesIp(String filepath) throws IOException {
         //从配置文件读取SwitchIp以及对应的community
-
+        switchInfo = FileUtil.FileReadByLine(filepath);
+        if (switchInfo.size() == 0) {
+            LOGGER.debug("switch文件为空!");
+            return false;
+        }
         return true;
     }
 
@@ -48,18 +60,18 @@ public class MyTopoDiscovingStrategy implements TopoDiscovingStrategy{
      * @return
      */
     public boolean getSwitchData() {
-        if (switchesIp == null){
-            LOGGER.error("SwitchesIp is empty,maybe they have not been entered!");
+        if (switchInfo.keySet() == null){
+            LOGGER.debug("SwitchesIp is empty,maybe they have not been entered!");
             return false;
         }
-        arpTable = SnmpUtil.getArpTable(switchesIp);
+        arpTable = SnmpUtil.getArpTable(switchInfo);
         if (arpTable == null){
-            LOGGER.error("ArpTable is null,it seems we get arp table failed!");
+            LOGGER.debug("ArpTable is null,it seems we get arp table failed!");
             return false;
         }
-        macTable = SnmpUtil.getMacTable(switchesIp);
+        macTable = SnmpUtil.getMacTable(switchInfo);
         if (macTable == null){
-            LOGGER.error("MacTable is null, it seems we get mac table failed!");
+            LOGGER.debug("MacTable is null, it seems we get mac table failed!");
         }
         return true;
     }
@@ -72,20 +84,20 @@ public class MyTopoDiscovingStrategy implements TopoDiscovingStrategy{
      */
     public boolean processData() {
         //topo结构中交换机节点创建
-        if (switchesIp == null){
-            LOGGER.error("SwitchesIp is empty,maybe they have not been entered!");
+        if (switchInfo.keySet() == null){
+            LOGGER.debug("SwitchesIp is empty,maybe they have not been entered!");
             return false;
         }
         //构建topo中node
         List<Device> nodes = new ArrayList<Device>();
         if (arpTable == null){
-            LOGGER.error("ArpTable is null,it seems we get arp table failed!");
+            LOGGER.debug("ArpTable is null,it seems we get arp table failed!");
             return false;
         }
         Switch aSwitch = null;
         Computer computer = null;
         for (String mac:arpTable.keySet()){
-            if (switchesIp.contains(arpTable.get(mac))){
+            if (switchInfo.keySet().contains(arpTable.get(mac))){
                 aSwitch = new Switch.SwitchBuilder(arpTable.get(mac),TopoConstant.SWITCH_TYPE).build();
                 topo.getNodeSwitches().add(aSwitch);
                 nodes.add(aSwitch);
@@ -342,6 +354,35 @@ public class MyTopoDiscovingStrategy implements TopoDiscovingStrategy{
             }
         }
         return intersectionDevices;
+    }
+
+    public static void main(String[] args){
+        MyTopoDiscovingStrategy myStrategy = new MyTopoDiscovingStrategy();
+        String filepath = MyTopoDiscovingStrategy.class.getClassLoader().getResource("switchIp").getPath();
+        try {
+            boolean result = myStrategy.enterSwitchesIp(filepath);
+            if (result == false){
+                System.out.println("文件读取失败");
+            }else{
+                System.out.println("Successfully!");
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        myStrategy.getSwitchData();
+        myStrategy.processData();
+        myStrategy.discoveTopo();
+
+        List<Device> devices = myStrategy.topo.getNodes();
+        System.out.println("NodeNum:" + devices.size());
+        for (Device device:devices){
+            System.out.println("Node:IP[" + device.getIp() + "] <==> type[" + device.getType() + "]");
+        }
+        List<Edge> edges = myStrategy.topo.getEdges();
+        System.out.println("EdgeNum:" + edges.size());
+        for (Edge edge : edges){
+            System.out.println("Edge:IP[" + edge.getNode1() + "] <==> IP[" + edge.getNode2()+ "]");
+        }
     }
 
 }
